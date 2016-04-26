@@ -1,5 +1,5 @@
 proc mod1 {} {
-	# THIS PROCEDURE READS THE INPUT PDB FILE AND ADD THE CHAIN ID IF ITS MISSING
+	# THIS PROCEDURE READS THE INPUT PDB FILE AND ADD THE CHAIN ID IF ITS MISSING AND ADD THE OCCUPANCY (1.00) AND TEMPERATURE FACTOR (0.00)
 
 	# space variables
 
@@ -40,6 +40,41 @@ proc mod1 {} {
 	set f [open "[lindex $::argv 0]" "r"]
 	set data1 [read $f]
 	close $f
+
+	set k 1
+	while { [lindex $data1 $k] != "ATOM" && [lindex $data1 $k] != "HETATM" } {
+		incr k
+	}
+
+	set occ [lindex $data1 [expr { $k - 3 }]]
+	set temp [lindex $data1 [expr { $k - 4 }]]
+
+	set t 0
+	while { [string range $occ $t $t] != "." } {
+		incr t
+	}
+	set docc [string range $occ [expr { $t + 4 }] end]
+
+	set t 0
+	while { [string range $temp $t $t] != "." } {
+		incr t
+	}
+	set dtemp [string range $temp [expr { $t + 4 }] end]
+
+
+	if { [string length $docc] > 2 && [string length $dtemp] > 2 } {
+		puts "			# PUTTING IN THE TEMPERATURE FACTOR VALUE AS 0.00 AND OCCUPANCY VALUE AS 1.00 IN THE PDB"
+		set oshift1 2
+	} elseif { [string length $docc] > 2 && [string length $dtemp] < 2 } { 
+		puts "			# PUTTING IN THE OCCUPANCY VALUE AS 1.00 IN THE PDB"
+		set oshift1 1
+	} elseif { [string length $docc] < 2 && [string length $dtemp] > 2 } {
+		puts "			# PUTTING IN THE TEMPERATURE FACTOR VALUE AS 0.00 IN THE PDB"
+		set oshift1 1
+	} elseif { [string length $docc] < 2 && [string length $dtemp] < 2 } {
+		puts "			# NO PROBLEM WITH THE TEMPERATURE FACTOR VALUE AND OCCUPANCY VALUE IN THE PDB"
+		set oshift1 0
+	}
 
 	set test [lindex $data1 5]
 	set st [string length $test]
@@ -131,7 +166,7 @@ proc mod1 {} {
 					incr t
 				}
 				set corx [string range $x1 0 [expr { $t + 3 }]]
-				set cory [string range $x1 [expr { $t + 3 }] end]
+				set cory [string range $x1 [expr { $t + 4 }] end]
 				set sx1 [string length [string range $x1 0 [expr { $t + 3 }]]]
 				set y1 ""
 				set sy1 8
@@ -151,7 +186,7 @@ proc mod1 {} {
 						incr t
 					}
 					set cory [string range $y1 0 [expr { $t + 3 }]]
-					set corz [string range $y1 [expr { $t + 3 }] end]
+					set corz [string range $y1 [expr { $t + 4 }] end]
 					set sy1 [string length [string range $y1 0 [expr { $t + 3 }]]]
 					set z1 ""
 					set sz1 8
@@ -164,13 +199,13 @@ proc mod1 {} {
 					set sz1 [string length $z1]
 				}
 			}
-			if { [string length [lindex $data1 [expr { $k + 9 - $shift -$shift1 - $shift2 - $shift3 - $shift4 - $oshift}]]] > 5 } {
+			if { [string length [lindex $data1 [expr { $k + 9 - $shift -$shift1 - $shift2 - $shift3 - $shift4 - $oshift }]]] > 5 } {
 				set shift5 1
 			} else {
 				set shift5 0
 			}
 		
-			puts $h "$ft$p1($srn1)$rn1 $ic($sat1)$at1$sat($sat1)$p($sresn)$resn $cn$p($san1)$an1    $c($sx1)$x1$c($sy1)$y1$c($sz1)$z1  1.00  0.00           [lindex $data1 [expr { $k + 11 - $shift - $shift1 - $shift2 - $shift3 - $shift4 - $shift5 - $oshift }]]"
+			puts $h "$ft$p1($srn1)$rn1 $ic($sat1)$at1$sat($sat1)$p($sresn)$resn $cn$p($san1)$an1    $c($sx1)$x1$c($sy1)$y1$c($sz1)$z1  1.00  0.00           [lindex $data1 [expr { $k + 11 - $shift - $shift1 - $shift2 - $shift3 - $shift4 - $shift5 - $oshift - $oshift1 }]]"
 		}
 		incr k
 	}
